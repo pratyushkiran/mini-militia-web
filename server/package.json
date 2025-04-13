@@ -13,6 +13,7 @@
   "dependencies": {
     "@colyseus/schema": "^3.0.33",
     "colyseus": "^0.16.3",
+    "colyseus.js": "^0.16.15",
     "express": "^5.1.0"
   },
   "devDependencies": {
