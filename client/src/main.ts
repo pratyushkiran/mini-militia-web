@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GameScene } from "./GameScene";
+import { HudScene } from "./HudScene";
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -20,4 +21,8 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 console.log("Initializing Phaser");
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+console.log("GameScene loaded");
+
+// proper way to add new scene !!
+game.scene.add("HudScene", HudScene, true); // Add and start the HUD scene
