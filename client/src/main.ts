@@ -10,9 +10,9 @@ const config: Phaser.Types.Core.GameConfig = {
     default: "arcade",
     arcade: {
       gravity: {
-        y: 300,
+        y: 800,
         x: 0,
-      }, // No gravity
+      },
       debug: true, // Shows collision boxes in green
     },
   },

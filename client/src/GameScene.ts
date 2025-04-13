@@ -10,7 +10,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    // No assets yet
+    this.load.image("player", "assets/player.png");
   }
 
   create() {
@@ -25,11 +25,12 @@ export class GameScene extends Phaser.Scene {
     platforms.create(600, 300, "null").setDisplaySize(200, 20).refreshBody();
 
     // Player (blue rectangle)
-    this.player = this.physics.add
-      .sprite(100, 500, "null")
-      .setDisplaySize(50, 50)
-      .setTint(0x0000ff); // Blue color
-    this.player.setBounce(0.2); // Slight bounce on landing
+    // this.player = this.physics.add
+    //   .sprite(100, 500, "null")
+    //   .setDisplaySize(50, 50)
+    //   .setTint(0x0000ff); // Blue color
+    this.player = this.physics.add.sprite(100, 500, "player").setScale(0.08); // Adjust size if needed
+    this.player.setBounce(0.1); // Slight bounce on landing
     this.player.setCollideWorldBounds(true); // Stays within canvas
 
     // Collisions between player and platforms
@@ -62,7 +63,7 @@ export class GameScene extends Phaser.Scene {
 
     // Jump (only when on ground)
     if (this.spaceBar.isDown && this.player.body!.touching.down) {
-      this.player.setVelocityY(-330); // Jump upward
+      this.player.setVelocityY(-300); // Jump upward
     }
   }
 }
