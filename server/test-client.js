@@ -12,10 +12,9 @@ async function joinRoom() {
     console.log("Player left:", msg.sessionId);
   });
 
-  // Simulate ready after 2 seconds
-  setTimeout(() => {
-    room.send("ready");
-  }, 8000);
+  room.onStateChange((state) => {
+    console.log("State:", Object.fromEntries(state.players));
+  });
 }
 
 joinRoom().catch(console.error);

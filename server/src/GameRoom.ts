@@ -5,6 +5,8 @@ class Player extends Schema {
   @type("number") x: number = 100;
   @type("number") y: number = 500;
   @type("string") sessionId: string | undefined;
+  @type("number") velocityX: number = 0;
+  @type("number") velocityY: number = 0;
 }
 
 class GameState extends Schema {
@@ -18,14 +20,39 @@ export class GameRoom extends Room<GameState> {
   onCreate(options: any) {
     console.log("GameRoom created:", options);
     this.setState(new GameState());
-    this.autoDispose = true;
-    // Lock room when full
-    this.onMessage("ready", (client) => {
-      if (this.clients.length >= this.minClients) {
+    this.autoDispose = false;
+    setTimeout(() => {
+      if (
+        this.clients.length >= this.minClients &&
+        this.clients.length <= this.maxClients
+      ) {
         this.lock();
         console.log("Room locked with", this.clients.length, "players");
       }
-    });
+    }, 10000);
+
+    this.onMessage(
+      "move",
+      (client: Client, data: { velocityX: number; velocityY: number }) => {
+        const player = this.state.players.get(client.sessionId);
+        if (player) {
+          player.velocityX = data.velocityX;
+          player.velocityY = data.velocityY;
+          console.log(
+            `${client.sessionId} moved: vx=${data.velocityX}, vy=${data.velocityY}`
+          );
+        }
+      }
+    );
+
+    this.setSimulationInterval((delta) => {
+      this.state.players.forEach((player) => {
+        player.x += player.velocityX * (delta / 1000);
+        player.y += player.velocityY * (delta / 1000);
+        player.x = Math.max(0, Math.min(800, player.x));
+        player.y = Math.max(0, Math.min(600, player.y));
+      });
+    }, 1000 / 60);
   }
 
   async onAuth(client: Client, options: any) {
@@ -55,10 +82,13 @@ export class GameRoom extends Room<GameState> {
         `${client.sessionId} left. Players: ${this.state.players.size}`
       );
       this.broadcast("player_left", { sessionId: client.sessionId });
-      // Unlock if below minClients
-      if (this.clients.length < this.minClients && this.locked) {
-        this.unlock();
-        console.log("Room unlocked");
+      if (this.clients.length === 0) {
+        setTimeout(() => {
+          if (this.clients.length === 0) {
+            this.disconnect();
+            console.log("GameRoom disposed after delay");
+          }
+        }, 5000);
       }
     }
   }

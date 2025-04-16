@@ -122,7 +122,8 @@ export class GameScene extends Phaser.Scene {
     // Set bullet properties
     bullet.setActive(true).setVisible(true);
     bullet.setDisplaySize(10, 5).setTint(0xff0000); // Red rectangle
-    bullet.body!.allowGravity = false; // Bullets fly straight
+
+    (bullet.body as Phaser.Physics.Arcade.Body).allowGravity = false;
 
     // Calculate direction
     const angle = Phaser.Math.Angle.Between(
