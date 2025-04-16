@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import { HudScene } from "./HudScene";
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;

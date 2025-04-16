@@ -21,13 +21,32 @@ export class GameRoom extends Room<GameState> {
     console.log("GameRoom created:", options);
     this.setState(new GameState());
     this.autoDispose = false;
+    console.log("Starting lock timeout");
     setTimeout(() => {
+      console.log(
+        "Lock timeout fired, clients:",
+        this.clients.length,
+        "locked:",
+        this.locked
+      );
       if (
         this.clients.length >= this.minClients &&
-        this.clients.length <= this.maxClients
+        this.clients.length <= this.maxClients &&
+        !this.locked
       ) {
         this.lock();
         console.log("Room locked with", this.clients.length, "players");
+      } else {
+        console.log(
+          "Lock skipped: clients=",
+          this.clients.length,
+          "min=",
+          this.minClients,
+          "max=",
+          this.maxClients,
+          "locked=",
+          this.locked
+        );
       }
     }, 10000);
 
