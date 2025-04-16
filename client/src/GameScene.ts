@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import * as Colyseus from "colyseus.js";
 
 export class GameScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
@@ -6,13 +7,26 @@ export class GameScene extends Phaser.Scene {
   private spaceBar!: Phaser.Input.Keyboard.Key;
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
   private bullets!: Phaser.Physics.Arcade.Group;
+  private room: Colyseus.Room | null = null;
+  private client: Colyseus.Client | null = null;
+  private remotePlayers: Map<string, Phaser.Physics.Arcade.Sprite> = new Map();
 
   constructor() {
     super("GameScene");
   }
 
+  async init() {
+    this.client = new Colyseus.Client("ws://localhost:2567");
+    try {
+      this.room = await this.client.joinOrCreate("game");
+      console.log("Joined room:", this.room.sessionId);
+    } catch (error) {
+      console.error("Failed to join room:", error);
+      this.room = null;
+    }
+  }
+
   preload() {
-    // No assets yet (rectangles for now)
     this.load.image("player", "assets/player.png");
   }
 
@@ -37,11 +51,11 @@ export class GameScene extends Phaser.Scene {
       .refreshBody();
 
     // Player (blue rectangle)
-    // this.player = this.physics.add
-    //   .sprite(100, 500, "null")
-    //   .setDisplaySize(50, 50)
-    //   .setTint(0x0000ff);
-    this.player = this.physics.add.sprite(100, 500, "player").setScale(0.1); // Adjust size if needed
+    this.player = this.physics.add
+      .sprite(100, 500, "null")
+      .setDisplaySize(50, 50)
+      .setTint(0x0000ff);
+    // this.player = this.physics.add.sprite(100, 500, "player").setScale(0.1); // Adjust size if needed
 
     this.player.setBounce(0.2);
     this.player.setCollideWorldBounds(true);
@@ -75,30 +89,78 @@ export class GameScene extends Phaser.Scene {
     );
 
     console.log("Game scene initialized with shooting");
+
+    if (this.room) {
+      this.room.state.players.onAdd((player: any, sessionId: string) => {
+        if (sessionId !== this.room!.sessionId) {
+          const sprite = this.physics.add
+            .sprite(player.x, player.y, "null")
+            .setDisplaySize(50, 50)
+            .setTint(0xff0000);
+          this.remotePlayers.set(sessionId, sprite);
+          this.physics.add.collider(sprite, this.platforms);
+          console.log(
+            `Remote player ${sessionId} added at x:${player.x}, y:${player.y}`
+          );
+        }
+      });
+
+      this.room.state.players.onRemove((player: any, sessionId: string) => {
+        const sprite = this.remotePlayers.get(sessionId);
+        if (sprite) {
+          sprite.destroy();
+          this.remotePlayers.delete(sessionId);
+          console.log(`Remote player ${sessionId} removed`);
+        }
+      });
+
+      this.room.state.players.onChange((player: any, sessionId: string) => {
+        if (sessionId !== this.room!.sessionId) {
+          const sprite = this.remotePlayers.get(sessionId);
+          if (sprite) {
+            sprite.setPosition(player.x, player.y);
+          }
+        }
+      });
+
+      console.log("Multiplayer initialized");
+    } else {
+      console.warn("Running in single-player mode");
+    }
   }
 
   update() {
-    // Player movement
+    if (!this.player) {
+      console.error("Player not initialized");
+      return;
+    }
+
+    let velocityX = 0;
+    let velocityY = this.player.body!.velocity.y;
+
     if (
       this.cursors.left.isDown ||
       this.input.keyboard!.checkDown(this.input.keyboard!.addKey("A"))
     ) {
-      this.player.setVelocityX(-300);
+      velocityX = -160;
     } else if (
       this.cursors.right.isDown ||
       this.input.keyboard!.checkDown(this.input.keyboard!.addKey("D"))
     ) {
-      this.player.setVelocityX(300);
-    } else {
-      this.player.setVelocityX(0);
+      velocityX = 160;
     }
 
-    // Jump
     if (this.spaceBar.isDown && this.player.body!.touching.down) {
-      this.player.setVelocityY(-400);
+      velocityY = -330;
     }
 
-    // Destroy bullets off-screen
+    this.player.setVelocityX(velocityX);
+    this.player.setVelocityY(velocityY);
+
+    if (this.room) {
+      this.room.send("move", { velocityX, velocityY });
+    }
+
     this.bullets.children.iterate((bullet: any) => {
       if (
         bullet &&
